@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>신나는 모둠별 리듬 게임</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- QR Code Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore-compat.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap');
+    body {
+      font-family: 'Nanum Gothic', sans-serif;
+    }
+    .pulse-animation {
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: .5; }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between">
+
+  <!-- TOP NAVIGATION / HEADER -->
+  <header class="bg-indigo-600 text-white shadow-md py-4 px-6">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+      <div class="flex items-center gap-3">
+        <div class="bg-white text-indigo-600 p-2 rounded-lg shadow-inner">
+          <i data-lucide="music" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight">신나는 리듬 학습 & 게임</h1>
+          <p class="text-xs text-indigo-200">5개 모둠 실시간 태블릿 연동 프로그램</p>
+        </div>
+      </div>
+      <!-- Connection, Mode & QR Code Button -->
+      <div class="flex flex-wrap items-center gap-3">
+        <button onclick="openQrModal()" class="bg-indigo-500 hover:bg-indigo-400 text-white px-3.5 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
+          <i data-lucide="qr-code" class="w-4 h-4"></i> 학생 접속 QR코드
+        </button>
+        <div class="flex items-center gap-3 bg-indigo-700 px-4 py-2 rounded-full text-sm font-semibold">
+          <span id="network-dot" class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+          <span id="role-display">연결 설정 중...</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="max-w-7xl mx-auto p-4 sm:p-6 flex-grow w-full">
+    
+    <!-- 1단계: 역할 설정 로비 -->
+    <section id="view-lobby" class="bg-white rounded-2xl shadow-xl p-6 sm:p-10 max-w-2xl mx-auto my-8 border border-slate-100">
+      <div class="text-center mb-8">
+        <span class="bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wider">시작하기</span>
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-3">기기 역할 선택하기</h2>
+        <p class="text-slate-500 mt-2 text-sm sm:text-base">이 태블릿 또는 PC가 어떤 역할을 수행할지 선택하세요.</p>
+      </div>
+
+      <div class="space-y-4">
+        <!-- Host Option -->
+        <button onclick="selectRole('host')" class="w-full text-left p-5 rounded-xl border-2 border-indigo-100 hover:border-indigo-500 hover:bg-indigo-50/50 transition-all flex items-start gap-4 shadow-sm group">
+          <div class="bg-indigo-100 text-indigo-600 p-3 rounded-lg group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+            <i data-lucide="tv" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-lg text-slate-800">교사용 전체 화면 (TV / 프로젝터)</h3>
+            <p class="text-slate-500 text-sm mt-1">게임 진행을 통제하고, 타이머와 전체 실시간 점수판을 크게 띄웁니다.</p>
+          </div>
+        </button>
+
+        <!-- Divider -->
+        <div class="relative flex py-2 items-center">
+          <div class="flex-grow border-t border-slate-200"></div>
+          <span class="flex-shrink mx-4 text-slate-400 text-xs">모둠별 태블릿 설정</span>
+          <div class="flex-grow border-t border-slate-200"></div>
+        </div>
+
+        <!-- Group Options Grid -->
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <button onclick="selectRole('group1')" class="group-btn hover:scale-105 transition-transform bg-rose-50 border border-rose-200 hover:border-rose-500 p-4 rounded-xl text-center shadow-sm">
+            <div class="text-rose-600 font-extrabold text-lg">1모둠</div>
+            <div class="text-[10px] text-rose-500 mt-1">태블릿 1</div>
+          </button>
+          <button onclick="selectRole('group2')" class="group-btn hover:scale-105 transition-transform bg-amber-50 border border-amber-200 hover:border-amber-500 p-4 rounded-xl text-center shadow-sm">
+            <div class="text-amber-600 font-extrabold text-lg">2모둠</div>
+            <div class="text-[10px] text-amber-500 mt-1">태블릿 2</div>
+          </button>
+          <button onclick="selectRole('group3')" class="group-btn hover:scale-105 transition-transform bg-emerald-50 border border-emerald-200 hover:border-emerald-500 p-4 rounded-xl text-center shadow-sm">
+            <div class="text-emerald-600 font-extrabold text-lg">3모둠</div>
+            <div class="text-[10px] text-emerald-500 mt-1">태블릿 3</div>
+          </button>
+          <button onclick="selectRole('group4')" class="group-btn hover:scale-105 transition-transform bg-sky-50 border border-sky-200 hover:border-sky-500 p-4 rounded-xl text-center shadow-sm">
+            <div class="text-sky-600 font-extrabold text-lg">4모둠</div>
+            <div class="text-[10px] text-sky-500 mt-1">태블릿 4</div>
+          </button>
+          <button onclick="selectRole('group5')" class="group-btn hover:scale-105 transition-transform bg-violet-50 border border-violet-200 hover:border-violet-500 p-4 rounded-xl text-center col-span-2 sm:col-span-1 shadow-sm">
+            <div class="text-violet-600 font-extrabold text-lg">5모둠</div>
+            <div class="text-[10px] text-violet-500 mt-1">태블릿 5</div>
+          </button>
+        </div>
+
+        <div class="mt-6 p-4 bg-slate-100 rounded-xl flex items-center justify-between text-xs text-slate-600">
+          <span>인터넷 없이 혼자 테스트하시나요?</span>
+          <button onclick="startLocalDemoMode()" class="bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 font-bold transition-all">
+            1인 로컬 테스트 모드
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------------------------------------------------- -->
+    <!-- 2단계: 연습 단계 (Practice Phase) -->
+    <!-- ---------------------------------------------------- -->
+    <section id="view-practice" class="hidden space-y-6">
+      <div class="bg-white rounded-2xl shadow-lg p-6 border border-slate-100">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full">1단계: 리듬 연습하기</span>
+            <h2 class="text-2xl font-extrabold text-slate-900 mt-2">랜덤 리듬 연습하기</h2>
+            <p class="text-slate-500 text-sm mt-1">각 모둠에 6개의 리듬 중 무작위 리듬이 하나씩 할당되었습니다. 소리를 들으며 신나게 연주를 구상해 보세요!</p>
+          </div>
+          <div id="host-practice-controls" class="hidden flex gap-2">
+            <button onclick="distributeRandomRhythms()" class="bg-slate-700 hover:bg-slate-800 text-white font-bold px-4 py-2.5 rounded-xl text-sm transition-all flex items-center gap-2">
+              <i data-lucide="shuffle" class="w-4 h-4"></i> 리듬 다시 섞기
+            </button>
+            <button onclick="transitionToGameInit()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-5 py-2.5 rounded-xl text-sm shadow-md hover:shadow-lg transition-all flex items-center gap-2">
+              리듬게임 시작하기 <i data-lucide="chevron-right" class="w-4 h-4"></i>
+            </button>
+          </div>
+          <div id="group-practice-status" class="hidden bg-slate-100 px-4 py-2.5 rounded-xl text-sm font-bold text-slate-600">
+            교사가 게임을 시작할 때까지 대기해주세요.
+          </div>
+        </div>
+      </div>
+
+      <!-- 리듬 카드 (모둠별 개별 제공 및 교사는 전체 현황판) -->
+      <div id="practice-display-area" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- 동적으로 할당된 연습 악보 카드가 들어갑니다 -->
+      </div>
+    </section>
+
+    <!-- ---------------------------------------------------- -->
+    <!-- 3단계: 리듬게임 대기 및 비밀 선택 (Game Init Phase) -->
+    <!-- ---------------------------------------------------- -->
+    <section id="view-game-init" class="hidden bg-white rounded-2xl shadow-xl p-6 sm:p-8 max-w-4xl mx-auto my-6 border border-slate-100">
+      <div class="text-center mb-8">
+        <span class="bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wider">2단계: 게임 준비</span>
+        <h2 class="text-3xl font-extrabold text-slate-900 mt-3">라운드 <span class="game-round-num">1</span> 시작</h2>
+        <div class="mt-4 inline-flex items-center gap-2 bg-indigo-50 border border-indigo-100 px-4 py-2 rounded-xl text-indigo-700 font-bold">
+          <i data-lucide="play-circle" class="w-5 h-5"></i>
+          이번 라운드 연주 모둠: <span class="performer-group-name font-black ml-1">1모둠</span>
+        </div>
+      </div>
+
+      <!-- 연주 모둠용 화면 (6개 중 비밀리 선택) -->
+      <div id="performer-selection-box" class="hidden bg-indigo-50/50 border border-indigo-100 rounded-xl p-6">
+        <h3 class="text-lg font-bold text-slate-800 text-center mb-4">🤫 다른 모둠 모르게 이번에 연주할 리듬을 하나 고르세요!</h3>
+        <p class="text-xs text-slate-500 text-center mb-6">여기에 고른 악보는 다른 모둠 태블릿에는 보이지 않습니다. 자신 있게 완수할 리듬을 골라주세요.</p>
+        
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <button onclick="selectSecretRhythm(1)" class="secret-rhythm-btn border-2 border-slate-200 bg-white p-3 rounded-xl hover:border-indigo-500 transition-all flex flex-col justify-between items-center h-40">
+            <span class="font-extrabold text-slate-700 block text-xs">리듬 1</span>
+            <img src="리듬1.png" alt="리듬 1" class="h-14 object-contain my-auto">
+          </button>
+          <button onclick="selectSecretRhythm(2)" class="secret-rhythm-btn border-2 border-slate-200 bg-white p-3 rounded-xl hover:border-indigo-500 transition-all flex flex-col justify-between items-center h-40">
+            <span class="font-extrabold text-slate-700 block text-xs">리듬 2</span>
+            <img src="리듬2.png" alt="리듬 2" class="h-14 object-contain my-auto">
+          </button>
+          <button onclick="selectSecretRhythm(3)" class="secret-rhythm-btn border-2 border-slate-200 bg-white p-3 rounded-xl hover:border-indigo-500 transition-all flex flex-col justify-between items-center h-40">
+            <span class="font-extrabold text-slate-700 block text-xs">리듬 3</span>
+            <img src="리듬3.png" alt="리듬 3" class="h-14 object-contain my-auto">
+          </button>
+          <button onclick="selectSecretRhythm(4)" class="secret-rhythm-btn border-2 border-slate-200 bg-white p-3 rounded-xl hover:border-indigo-500 transition-all flex flex-col justify-between items-center h-40">
+            <span class="font-extrabold text-slate-700 block text-xs">리듬 4</span>
+            <img src="리듬4.png" alt="리듬 4" class="h-14 object-contain my-auto">
+          </button>
+          <button onclick="selectSecretRhythm(5)" class="secret-rhythm-btn border-2 border-slate-200 bg-white p-3 rounded-xl hover:border-indigo-500 transition-all flex flex-col justify-between items-center h-40">
+            <span class="font-extrabold text-slate-700 block text-xs">리듬 5</span>
+            <img src="리듬5.png" alt="리듬 5" class="h-14 object-contain my-auto">
+          </button>
+          <button onclick="selectSecretRhythm(6)" class="secret-rhythm-btn border-2 border-slate-200 bg-white p-3 rounded-xl hover:border-indigo-500 transition-all flex flex-col justify-between items-center h-40">
+            <span class="font-extrabold text-slate-700 block text-xs">리듬 6</span>
+            <img src="리듬6.png" alt="리듬 6" class="h-14 object-contain my-auto">
+          </button>
+        </div>
+
+        <div class="mt-8 flex justify-center">
+          <button id="btn-start-performance" disabled onclick="startPerformingPhase()" class="bg-slate-300 text-white font-bold px-8 py-3.5 rounded-xl transition-all flex items-center gap-2 cursor-not-allowed">
+            <i data-lucide="mic" class="w-5 h-5"></i> 선택 완료 및 연주 시작하기
+          </button>
+        </div>
+      </div>
+
+      <!-- 다른 모둠 대기 화면 -->
+      <div id="observer-waiting-box" class="hidden text-center py-10 bg-slate-50 border border-slate-100 rounded-xl">
+        <div class="inline-block bg-indigo-100 p-4 rounded-full text-indigo-600 pulse-animation mb-4">
+          <i data-lucide="radio" class="w-8 h-8"></i>
+        </div>
+        <h3 class="text-xl font-bold text-slate-800"><span class="performer-group-name">1모둠</span>이 리듬을 선택하고 있습니다</h3>
+        <p class="text-slate-500 mt-2 text-sm">연주 모둠이 곡을 정하면 20초간의 리듬 연주가 곧 시작됩니다.</p>
+      </div>
+    </section>
+
+    <!-- ---------------------------------------------------- -->
+    <!-- 4단계: 리듬 연주 단계 (Performing Phase, 20초) -->
+    <!-- ---------------------------------------------------- -->
+    <section id="view-game-performing" class="hidden space-y-6">
+      <!-- 상단 타이머 및 상태창 -->
+      <div class="bg-rose-50 border border-rose-100 rounded-2xl p-6 shadow-md flex flex-col md:flex-row justify-between items-center gap-6">
+        <div class="flex items-center gap-4">
+          <div class="bg-rose-500 text-white p-3.5 rounded-2xl animate-bounce">
+            <i data-lucide="mic-2" class="w-8 h-8"></i>
+          </div>
+          <div>
+            <span class="bg-rose-200 text-rose-800 text-xs font-black px-2.5 py-1 rounded-full">연주 시간 (20초)</span>
+            <h2 class="text-2xl font-black text-rose-950 mt-1"><span class="performer-group-name">1모둠</span> 리듬 연주 중!</h2>
+            <p class="text-rose-700 text-sm mt-0.5">나머지 모둠은 연주를 열심히 듣고 아래 6개 악보 중 어떤 것인지 맞춰보세요!</p>
+          </div>
+        </div>
+
+        <!-- 타이머 원형/숫자 UI -->
+        <div class="flex items-center gap-4 bg-white px-6 py-3 rounded-2xl border border-rose-200 shadow-sm">
+          <i data-lucide="clock" class="w-6 h-6 text-rose-500"></i>
+          <div>
+            <div class="text-xs text-slate-400 font-bold">남은 연주시간</div>
+            <div class="text-3xl font-black text-rose-600" id="timer-display-performing">20</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 리듬 6개 미리보기 악보 패널 -->
+      <div class="bg-white rounded-2xl shadow-lg p-6 border border-slate-100">
+        <h3 class="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+          <i data-lucide="eye" class="text-indigo-600"></i> 리듬 후보 악보 6가지
+        </h3>
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div class="border border-slate-200 rounded-xl p-3 bg-slate-50 text-center flex flex-col justify-between">
+            <span class="bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full mx-auto">후보 ①</span>
+            <img src="리듬1.png" alt="리듬 1" class="h-12 mx-auto object-contain my-3">
+          </div>
+          <div class="border border-slate-200 rounded-xl p-3 bg-slate-50 text-center flex flex-col justify-between">
+            <span class="bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full mx-auto">후보 ②</span>
+            <img src="리듬2.png" alt="리듬 2" class="h-12 mx-auto object-contain my-3">
+          </div>
+          <div class="border border-slate-200 rounded-xl p-3 bg-slate-50 text-center flex flex-col justify-between">
+            <span class="bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full mx-auto">후보 ③</span>
+            <img src="리듬3.png" alt="리듬 3" class="h-12 mx-auto object-contain my-3">
+          </div>
+          <div class="border border-slate-200 rounded-xl p-3 bg-slate-50 text-center flex flex-col justify-between">
+            <span class="bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full mx-auto">후보 ④</span>
+            <img src="리듬4.png" alt="리듬 4" class="h-12 mx-auto object-contain my-3">
+          </div>
+          <div class="border border-slate-200 rounded-xl p-3 bg-slate-50 text-center flex flex-col justify-between">
+            <span class="bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full mx-auto">후보 ⑤</span>
+            <img src="리듬5.png" alt="리듬 5" class="h-12 mx-auto object-contain my-3">
+          </div>
+          <div class="border border-slate-200 rounded-xl p-3 bg-slate-50 text-center flex flex-col justify-between">
+            <span class="bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full mx-auto">후보 ⑥</span>
+            <img src="리듬6.png" alt="리듬 6" class="h-12 mx-auto object-contain my-3">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------------------------------------------------- -->
+    <!-- 5단계: 리듬 맞히기 선택 단계 (Choosing Phase, 15초) -->
+    <!-- ---------------------------------------------------- -->
+    <section id="view-game-choosing" class="hidden space-y-6">
+      <!-- 상단 타이머 및 상태창 -->
+      <div class="bg-amber-50 border border-amber-100 rounded-2xl p-6 shadow-md flex flex-col md:flex-row justify-between items-center gap-6">
+        <div class="flex items-center gap-4">
+          <div class="bg-amber-500 text-white p-3.5 rounded-2xl">
+            <i data-lucide="edit-3" class="w-8 h-8"></i>
+          </div>
+          <div>
+            <span class="bg-amber-200 text-amber-800 text-xs font-black px-2.5 py-1 rounded-full">정답 선택 시간 (15초)</span>
+            <h2 class="text-2xl font-black text-amber-950 mt-1">지금 정답을 골라주세요!</h2>
+            <p class="text-amber-700 text-sm mt-0.5">각 모둠 태블릿에서 들었던 연주 리듬의 정답 번호를 터치해 제출하세요!</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-4 bg-white px-6 py-3 rounded-2xl border border-amber-200 shadow-sm">
+          <i data-lucide="clock" class="w-6 h-6 text-amber-500"></i>
+          <div>
+            <div class="text-xs text-slate-400 font-bold">남은 선택시간</div>
+            <div class="text-3xl font-black text-amber-600" id="timer-display-choosing">15</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 선택 영역 (연주 모둠은 조작 불가, 관찰 모둠만 선택 가능) -->
+      <div class="bg-white rounded-2xl shadow-lg p-6 border border-slate-100">
+        <!-- 연주 모둠 차단 UI -->
+        <div id="performer-block-panel" class="hidden text-center py-12 bg-slate-100/70 border-2 border-dashed border-slate-300 rounded-2xl">
+          <div class="inline-block bg-indigo-100 text-indigo-700 p-3 rounded-full mb-3">
+            <i data-lucide="music-4" class="w-8 h-8"></i>
+          </div>
+          <h3 class="text-xl font-bold text-slate-700">우리 모둠은 이번 라운드 "연주 모둠"입니다.</h3>
+          <p class="text-slate-500 text-sm mt-1">다른 모둠들이 정답을 고르는 동안 잠시 대기하세요!</p>
+        </div>
+
+        <!-- 관찰 모둠 선택 UI (6개 후보군) -->
+        <div id="observer-choice-panel" class="hidden">
+          <h3 class="text-lg font-bold text-slate-800 mb-6 flex items-center justify-between">
+            <span class="flex items-center gap-2"><i data-lucide="help-circle" class="text-indigo-600"></i> 정답 악보 선택</span>
+            <span id="submitted-badge" class="bg-slate-100 text-slate-500 text-xs font-bold px-3 py-1 rounded-full">미제출</span>
+          </h3>
+
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4" id="choice-list-grid">
+            <!-- 동적으로 생성된 정답 선택 버튼 -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------------------------------------------------- -->
+    <!-- 6단계: 결과 확인 단계 (Result Phase) -->
+    <!-- ---------------------------------------------------- -->
+    <section id="view-game-result" class="hidden max-w-4xl mx-auto space-y-6">
+      <div class="bg-white rounded-2xl shadow-xl p-8 border border-slate-100 text-center">
+        <span class="bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1.5 rounded-full">라운드 결과 공개</span>
+        <h2 class="text-3xl font-black text-slate-900 mt-4"><span class="game-round-num">1</span>라운드 정답 리듬</h2>
+        
+        <!-- 정답 악보 이미지 -->
+        <div class="my-8 max-w-md mx-auto p-6 bg-emerald-50 border-4 border-emerald-400 rounded-2xl shadow-inner">
+          <span class="bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-full">정답 리듬 <span id="correct-rhythm-number">1</span></span>
+          <img id="correct-rhythm-image" src="리듬1.png" alt="정답 악보" class="h-28 mx-auto object-contain my-4">
+          <div class="flex justify-center">
+            <audio id="correct-rhythm-audio" src="리듬1.wav" controls class="max-w-xs shadow-sm rounded-lg"></audio>
+          </div>
+        </div>
+
+        <!-- 맞힌 모둠 현황 및 추가 보너스 표시 -->
+        <div class="bg-slate-50 rounded-2xl p-6 border border-slate-100 max-w-2xl mx-auto">
+          <h3 class="font-extrabold text-slate-800 mb-4 flex items-center justify-center gap-2">
+            <i data-lucide="check-circle" class="text-emerald-500"></i> 이번 라운드 정답 제출 현황
+          </h3>
+          <div class="grid grid-cols-5 gap-3" id="submitted-answers-display">
+            <!-- 모둠별 제출 정답 여부 -->
+          </div>
+
+          <div class="mt-6 border-t border-slate-200 pt-4 text-sm text-slate-600 flex flex-col sm:flex-row justify-around gap-2" id="round-scoring-summary">
+            <!-- 획득 점수 설명이 들어갑니다 -->
+          </div>
+        </div>
+
+        <!-- 다음 라운드 이동 (교사 호스트 전용 버튼) -->
+        <div class="mt-8 flex justify-center" id="host-result-controls">
+          <button onclick="nextRound()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold px-10 py-3.5 rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center gap-2">
+            다음 라운드로 넘어가기 <i data-lucide="arrow-right" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------------------------------------------------- -->
+    <!-- 7단계: 게임 종료 및 최종 순위 (Game Over Phase) -->
+    <!-- ---------------------------------------------------- -->
+    <section id="view-game-over" class="hidden max-w-3xl mx-auto space-y-6">
+      <div class="bg-white rounded-2xl shadow-2xl p-8 border border-slate-100 text-center relative overflow-hidden">
+        <!-- Background decoration -->
+        <div class="absolute -top-10 -left-10 w-40 h-40 bg-indigo-50 rounded-full -z-10"></div>
+        <div class="absolute -bottom-10 -right-10 w-40 h-40 bg-rose-50 rounded-full -z-10"></div>
+
+        <div class="inline-block bg-amber-100 text-amber-700 p-4 rounded-full mb-4 animate-bounce">
+          <i data-lucide="trophy" class="w-12 h-12"></i>
+        </div>
+        <h2 class="text-4xl font-black text-slate-900">🏆 리듬게임 최종 순위 🏆</h2>
+        <p class="text-slate-500 mt-2">모든 라운드가 끝났습니다! 영광의 1위 모둠을 공개합니다!</p>
+
+        <!-- 순위 시상대 UI -->
+        <div class="mt-10 max-w-xl mx-auto" id="ranking-list">
+          <!-- 동적으로 1~5등 렌더링 -->
+        </div>
+
+        <!-- 다시 하기 버튼 -->
+        <div class="mt-10" id="host-gameover-controls">
+          <button onclick="resetGame()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-8 py-3 rounded-xl shadow-md transition-all">
+            처음부터 다시 게임하기
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- QR CODE MODAL POPUP -->
+  <div id="qr-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl border border-slate-100 relative">
+      <button onclick="closeQrModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors">
+        <i data-lucide="x" class="w-6 h-6"></i>
+      </button>
+      
+      <div class="bg-indigo-50 text-indigo-600 p-3 rounded-full inline-block mb-3">
+        <i data-lucide="qr-code" class="w-8 h-8"></i>
+      </div>
+      
+      <h3 class="text-xl font-extrabold text-slate-900">학생용 기기 간편 접속</h3>
+      <p class="text-slate-500 text-xs mt-1.5">카메라로 아래 QR코드를 촬영하여 모둠 태블릿에 빠르게 참여하세요!</p>
+      
+      <!-- 로컬 파일(더블클릭 실행) 시 경고 UI 제공 -->
+      <div id="local-file-warning" class="hidden my-3 p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-left text-xs space-y-1">
+        <p class="font-bold flex items-center gap-1"><i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600"></i> 오프라인/파일 직접 열기 상태 경고</p>
+        <p>현재 컴퓨터 파일을 직접 열어 실행하셨습니다. 이 상태로는 다른 기기에서 교사 화면으로 접속이 불가능합니다.</p>
+        <p class="font-semibold text-slate-700 mt-1">💡 아래 해결 방법 중 하나를 선택하세요:</p>
+        <ul class="list-disc list-inside space-y-0.5 text-slate-600">
+          <li>컴퓨터의 로컬 IP(예: 192.168.x.x)와 포트 주소를 아래 칸에 입력해 QR코드를 재발행하세요.</li>
+          <li>인터넷 무료 호스팅(Vercel 등)에 업로드한 후 접속하세요.</li>
+        </ul>
+      </div>
+
+      <!-- QR 코드 실시간 렌더링 공간 -->
+      <div class="my-4 p-4 bg-white border border-slate-100 rounded-2xl inline-block shadow-inner">
+        <div id="qrcode-canvas" class="mx-auto"></div>
+      </div>
+
+      <!-- 수동 주소 수정란 -->
+      <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 text-left space-y-2">
+        <label class="block text-xs font-bold text-slate-500">🔗 접속 서버 주소 수정 (수동 갱신)</label>
+        <div class="flex gap-2">
+          <input id="manual-url-input" type="text" class="flex-grow bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-mono" placeholder="예: http://192.168.0.15:5500">
+          <button onclick="generateManualQr()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs whitespace-nowrap transition-all">
+            QR 재갱신
+          </button>
+        </div>
+        <p class="text-[10px] text-slate-400">교사 PC와 학생 태블릿이 같은 Wi-Fi에 속해있을 때, 컴퓨터의 내부 IP 주소와 포트번호를 입력해 주시면 QR 접속이 정상 수립됩니다.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM FOOTER -->
+  <footer class="bg-slate-900 text-slate-400 py-6 px-4 text-center border-t border-slate-800">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4 text-xs">
+      <p>© 2026 초등 음악 리듬 교실. All Rights Reserved.</p>
+      <div class="flex gap-4">
+        <span class="hover:text-white transition-colors cursor-pointer">이용 약관</span>
+        <span class="hover:text-white transition-colors cursor-pointer">개인정보 처리방침</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ---------------------------------------------------- -->
+  <!-- JAVASCRIPT LOGIC (Firebase & Real-time Game State) -->
+  <!-- ---------------------------------------------------- -->
+  <script>
+    // --- 1. 전역 변수 및 게임 기초 데이터 ---
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'rhythm-class-default';
+    const firebaseConfigStr = typeof __firebase_config !== 'undefined' ? __firebase_config : null;
+    
+    let db = null;
+    let auth = null;
+    let isConnected = false;
+    let isLocalMode = false;
+    
+    let currentRole = null; // 'host', 'group1', 'group2', 'group3', 'group4', 'group5'
+    let currentUserId = null;
+    let qrcodeObj = null;
+
+    // 리듬 매핑 정보 (리듬6 추가 완성)
+    const rhythmData = {
+      1: { img: '리듬1.png', wav: '리듬1.wav' },
+      2: { img: '리듬2.png', wav: '리듬2.wav' },
+      3: { img: '리듬3.png', wav: '리듬3.wav' },
+      4: { img: '리듬4.png', wav: '리듬4.wav' },
+      5: { img: '리듬5.png', wav: '리듬5.wav' },
+      6: { img: '리듬6.png', wav: '리듬6.wav' },
+    };
+
+    const groupMeta = {
+      'group1': { name: '1모둠', color: 'rose', bg: 'bg-rose-50', text: 'text-rose-600', border: 'border-rose-200' },
+      'group2': { name: '2모둠', color: 'amber', bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-200' },
+      'group3': { name: '3모둠', color: 'emerald', bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-200' },
+      'group4': { name: '4모둠', color: 'sky', bg: 'bg-sky-50', text: 'text-sky-600', border: 'border-sky-200' },
+      'group5': { name: '5모둠', color: 'violet', bg: 'bg-violet-50', text: 'text-violet-600', border: 'border-violet-200' }
+    };
+
+    // 로컬 게임 상태 관리
+    let localGameState = {
+      currentPhase: 'lobby', 
+      currentRound: 1, 
+      performerGroup: 'group1', 
+      secretRhythm: null, 
+      timer: 0,
+      scores: {
+        'group1': 0, 'group2': 0, 'group3': 0, 'group4': 0, 'group5': 0
+      },
+      answers: {
+        'group1': null, 'group2': null, 'group3': null, 'group4': null, 'group5': null
+      },
+      practiceRhythms: {
+        'group1': 1, 'group2': 2, 'group3': 3, 'group4': 4, 'group5': 5
+      }
+    };
+
+    let timerInterval = null;
+
+    // --- 2. 초기 구동 및 Firebase 설정 ---
+    window.onload = function() {
+      lucide.createIcons();
+      initializeFirebase();
+    };
+
+    function initializeFirebase() {
+      const dot = document.getElementById('network-dot');
+      const display = document.getElementById('role-display');
+
+      if (!firebaseConfigStr) {
+        console.warn('Firebase config missing. Defaulting to local mode.');
+        enableLocalMode();
+        return;
+      }
+
+      try {
+        const config = JSON.parse(firebaseConfigStr);
+        firebase.initializeApp(config);
+        auth = firebase.auth();
+        db = firebase.firestore();
+
+        const initAuth = async () => {
+          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+            await auth.signInWithCustomToken(__initial_auth_token);
+          } else {
+            await auth.signInAnonymously();
+          }
+          currentUserId = auth.currentUser.uid;
+          isConnected = true;
+          dot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500';
+          display.innerText = '멀티플레이 실시간 연결됨';
+        };
+        initAuth().catch(err => {
+          console.error('Firebase Auth Failed:', err);
+          enableLocalMode();
+        });
+      } catch (e) {
+        console.error('Firebase Initialization Failed:', e);
+        enableLocalMode();
+      }
+    }
+
+    function enableLocalMode() {
+      isLocalMode = true;
+      const dot = document.getElementById('network-dot');
+      const display = document.getElementById('role-display');
+      dot.className = 'w-2.5 h-2.5 rounded-full bg-slate-400';
+      display.innerText = '로컬 싱글 플레이 모드';
+    }
+
+    // --- QR 코드 모달 동작 ---
+    function openQrModal() {
+      const modal = document.getElementById('qr-modal');
+      const inputEl = document.getElementById('manual-url-input');
+      const warningEl = document.getElementById('local-file-warning');
+      const currentUrl = window.location.href;
+      
+      inputEl.value = currentUrl;
+      modal.classList.remove('hidden');
+
+      // 'file://' 프로토콜이거나 주소에 localhost 가 들어있을 경우 경고창 노출
+      if (window.location.protocol === 'file:' || currentUrl.includes('localhost') || currentUrl.includes('127.0.0.1')) {
+        warningEl.classList.remove('hidden');
+      } else {
+        warningEl.classList.add('hidden');
+      }
+
+      // 기존 캔버스 내용 비우고 새로 생성
+      updateQrCode(currentUrl);
+    }
+
+    function generateManualQr() {
+      const manualUrl = document.getElementById('manual-url-input').value.trim();
+      if (!manualUrl) return;
+      updateQrCode(manualUrl);
+    }
+
+    function updateQrCode(textUrl) {
+      document.getElementById('qrcode-canvas').innerHTML = '';
+      qrcodeObj = new QRCode(document.getElementById('qrcode-canvas'), {
+        text: textUrl,
+        width: 180,
+        height: 180,
+        colorDark : "#4f46e5", // 인디고 컬러 매칭
+        colorLight : "#ffffff",
+        correctLevel : QRCode.CorrectLevel.M
+      });
+      lucide.createIcons();
+    }
+
+    function closeQrModal() {
+      document.getElementById('qr-modal').classList.add('hidden');
+    }
+
+    // --- 3. 기기 역할 선택 로직 ---
+    function selectRole(role) {
+      currentRole = role;
+      
+      if (role === 'host') {
+        document.getElementById('role-display').innerText = '🎮 교사용 전체 화면';
+      } else {
+        document.getElementById('role-display').innerText = `📱 ${groupMeta[role].name} 태블릿`;
+      }
+
+      if (isLocalMode) {
+        localGameState.currentPhase = 'practice';
+        distributeLocalPracticeRhythms();
+        renderView(localGameState);
+      } else {
+        setupFirestoreSync();
+      }
+    }
+
+    function startLocalDemoMode() {
+      enableLocalMode();
+      selectRole('host');
+    }
+
+    // --- 4. Firestore 실시간 동기화 바인딩 ---
+    function setupFirestoreSync() {
+      const stateDocRef = db.doc(`artifacts/${appId}/public/data/gameState/mainState`);
+
+      if (currentRole === 'host') {
+        stateDocRef.get().then(docSnap => {
+          if (!docSnap.exists) {
+            stateDocRef.set(localGameState);
+          } else {
+            stateDocRef.set(localGameState);
+          }
+        });
+      }
+
+      stateDocRef.onSnapshot(docSnap => {
+        if (docSnap.exists) {
+          const cloudState = docSnap.data();
+          localGameState = cloudState; 
+          renderView(cloudState);
+        }
+      }, err => {
+        console.error('Firestore State Sync Error:', err);
+      });
+    }
+
+    // DB 쓰기 유틸리티
+    function updateCloudState(updates) {
+      if (isLocalMode) {
+        localGameState = { ...localGameState, ...updates };
+        renderView(localGameState);
+        return;
+      }
+      
+      const stateDocRef = db.doc(`artifacts/${appId}/public/data/gameState/mainState`);
+      stateDocRef.update(updates).catch(err => {
+        console.error('Cloud State Update Error:', err);
+      });
+    }
+
+    // --- 5. 화면 렌더링 엔진 ---
+    function renderView(state) {
+      const sections = ['view-lobby', 'view-practice', 'view-game-init', 'view-game-performing', 'view-game-choosing', 'view-game-result', 'view-game-over'];
+      sections.forEach(id => document.getElementById(id).classList.add('hidden'));
+
+      const activeSectionId = 'view-' + state.currentPhase.replace('_', '-');
+      const activeSection = document.getElementById(activeSectionId);
+      if (activeSection) {
+        activeSection.classList.remove('hidden');
+      }
+
+      document.querySelectorAll('.game-round-num').forEach(el => el.innerText = state.currentRound);
+      
+      const perfGroup = state.performerGroup;
+      document.querySelectorAll('.performer-group-name').forEach(el => {
+        el.innerText = groupMeta[perfGroup] ? groupMeta[perfGroup].name : perfGroup;
+      });
+
+      switch (state.currentPhase) {
+        case 'lobby':
+          break;
+        case 'practice':
+          renderPracticeView(state);
+          break;
+        case 'game_init':
+          renderGameInitView(state);
+          break;
+        case 'game_performing':
+          renderPerformingView(state);
+          break;
+        case 'game_choosing':
+          renderChoosingView(state);
+          break;
+        case 'game_result':
+          renderResultView(state);
+          break;
+        case 'game_over':
+          renderGameOverView(state);
+          break;
+      }
+
+      lucide.createIcons();
+    }
+
+    // --- [1단계 연습 렌더링] ---
+    function renderPracticeView(state) {
+      const area = document.getElementById('practice-display-area');
+      area.innerHTML = '';
+
+      const hostCtrls = document.getElementById('host-practice-controls');
+      const groupStatus = document.getElementById('group-practice-status');
+      
+      if (currentRole === 'host') {
+        hostCtrls.classList.remove('hidden');
+        groupStatus.classList.add('hidden');
+      } else {
+        hostCtrls.classList.add('hidden');
+        groupStatus.classList.remove('hidden');
+      }
+
+      if (currentRole === 'host') {
+        Object.keys(groupMeta).forEach(grpKey => {
+          const rhythmId = state.practiceRhythms[grpKey] || 1;
+          const info = rhythmData[rhythmId];
+          const grp = groupMeta[grpKey];
+
+          const card = document.createElement('div');
+          card.className = `bg-white rounded-xl shadow border-2 ${grp.border} p-5 flex flex-col justify-between`;
+          card.innerHTML = `
+            <div class="flex justify-between items-center mb-3">
+              <span class="font-extrabold text-lg ${grp.text}">${grp.name} 연습</span>
+              <span class="text-xs font-bold text-slate-400">랜덤 리듬 ${rhythmId}</span>
+            </div>
+            <div class="bg-slate-50 border border-slate-100 rounded-lg p-3 my-2 flex items-center justify-center min-h-[100px]">
+              <img src="${info.img}" alt="악보" class="max-h-16 object-contain" onerror="this.src='https://placehold.co/300x100?text=Rhythm+Score'">
+            </div>
+            <div class="mt-4">
+              <audio src="${info.wav}" controls class="w-full h-8 shadow-sm"></audio>
+            </div>
+          `;
+          area.appendChild(card);
+        });
+      } else {
+        const grpKey = currentRole;
+        const rhythmId = state.practiceRhythms[grpKey] || 1;
+        const info = rhythmData[rhythmId];
+        const grp = groupMeta[grpKey];
+
+        const card = document.createElement('div');
+        card.className = `col-span-full max-w-2xl mx-auto bg-white rounded-2xl shadow-xl border-4 ${grp.border} p-8 text-center flex flex-col justify-between w-full`;
+        card.innerHTML = `
+          <div class="mb-4">
+            <span class="bg-${grp.color}-100 ${grp.text} text-sm font-black px-4 py-1.5 rounded-full">${grp.name}의 연습 악보</span>
+            <h3 class="text-2xl font-extrabold text-slate-800 mt-3">신나게 리듬을 소리 내어 연습해보세요!</h3>
+            <p class="text-slate-500 text-xs mt-1">앞의 무대에서 다른 모둠 친구들에게 이 리듬을 똑같이 연주해 보여주는 연습입니다.</p>
+          </div>
+          <div class="bg-slate-50 border-2 border-slate-100 rounded-2xl p-6 my-6 flex items-center justify-center min-h-[180px] shadow-inner">
+            <img src="${info.img}" alt="우리 모둠 악보" class="max-h-32 object-contain" onerror="this.src='https://placehold.co/400x150?text=Rhythm+Score'">
+          </div>
+          <div class="max-w-md mx-auto w-full my-4">
+            <label class="block text-xs font-bold text-slate-400 mb-2">리듬 샘플 들어보기</label>
+            <audio src="${info.wav}" controls class="w-full shadow rounded-lg"></audio>
+          </div>
+        `;
+        area.appendChild(card);
+      }
+    }
+
+    // --- [2단계 게임 준비/비밀선택 렌더링] ---
+    function renderGameInitView(state) {
+      const performerBox = document.getElementById('performer-selection-box');
+      const observerBox = document.getElementById('observer-waiting-box');
+
+      const isPerformer = (currentRole === state.performerGroup);
+
+      if (currentRole === 'host') {
+        performerBox.classList.add('hidden');
+        observerBox.classList.remove('hidden');
+        observerBox.innerHTML = `
+          <div class="inline-block bg-indigo-100 p-4 rounded-full text-indigo-600 pulse-animation mb-4">
+            <i data-lucide="radio" class="w-8 h-8"></i>
+          </div>
+          <h3 class="text-xl font-bold text-slate-800"><span class="performer-group-name">${groupMeta[state.performerGroup].name}</span>이 리듬을 선택하는 중...</h3>
+          <p class="text-slate-500 mt-2 text-sm">연주할 리듬을 고르면 게임 타이머가 진행됩니다.</p>
+          <div class="mt-6 flex justify-center gap-2">
+            <button onclick="distributeSecretAuto(${state.currentRound})" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow-sm">
+              선택 대행하기 (리듬 무작위 지정)
+            </button>
+          </div>
+        `;
+      } else if (isPerformer) {
+        performerBox.classList.remove('hidden');
+        observerBox.classList.add('hidden');
+        
+        document.querySelectorAll('.secret-rhythm-btn').forEach((btn, idx) => {
+          if (state.secretRhythm === (idx + 1)) {
+            btn.className = "secret-rhythm-btn border-4 border-indigo-600 bg-indigo-50 p-3 rounded-xl transition-all scale-105 shadow-md flex flex-col justify-between items-center h-40";
+          } else {
+            btn.className = "secret-rhythm-btn border-2 border-slate-200 bg-white p-3 rounded-xl hover:border-indigo-500 transition-all flex flex-col justify-between items-center h-40";
+          }
+        });
+
+        const startBtn = document.getElementById('btn-start-performance');
+        if (state.secretRhythm) {
+          startBtn.removeAttribute('disabled');
+          startBtn.className = "bg-indigo-600 text-white font-bold px-8 py-3.5 rounded-xl hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-md cursor-pointer";
+        } else {
+          startBtn.setAttribute('disabled', 'true');
+          startBtn.className = "bg-slate-300 text-white font-bold px-8 py-3.5 rounded-xl transition-all flex items-center gap-2 cursor-not-allowed";
+        }
+      } else {
+        performerBox.classList.add('hidden');
+        observerBox.classList.remove('hidden');
+        observerBox.innerHTML = `
+          <div class="inline-block bg-indigo-100 p-4 rounded-full text-indigo-600 pulse-animation mb-4">
+            <i data-lucide="radio" class="w-8 h-8"></i>
+          </div>
+          <h3 class="text-xl font-bold text-slate-800"><span class="performer-group-name">${groupMeta[state.performerGroup].name}</span>이 리듬을 선택하고 있습니다</h3>
+          <p class="text-slate-500 mt-2 text-sm">연주를 듣고 어떤 리듬인지 알아맞히는 퀴즈입니다. 연주가 시작될 때까지 기다려 주세요!</p>
+        `;
+      }
+    }
+
+    // --- [3단계 연주중 렌더링 (20초)] ---
+    function renderPerformingView(state) {
+      document.getElementById('timer-display-performing').innerText = state.timer;
+
+      if (currentRole === 'host' && !timerInterval) {
+        startHostTimer('game_performing', 20, () => {
+          transitionToChoosingPhase();
+        });
+      }
+    }
+
+    // --- [4단계 정답 선택 렌더링 (15초)] ---
+    function renderChoosingView(state) {
+      document.getElementById('timer-display-choosing').innerText = state.timer;
+
+      const isPerformer = (currentRole === state.performerGroup);
+      const performerBlock = document.getElementById('performer-block-panel');
+      const observerChoice = document.getElementById('observer-choice-panel');
+
+      if (currentRole === 'host') {
+        performerBlock.classList.remove('hidden');
+        performerBlock.innerHTML = `
+          <div class="inline-block bg-indigo-100 text-indigo-700 p-3 rounded-full mb-3">
+            <i data-lucide="shield-alert" class="w-8 h-8"></i>
+          </div>
+          <h3 class="text-xl font-bold text-slate-700">학생들이 정답을 선택하고 있습니다!</h3>
+          <p class="text-slate-500 text-sm mt-1">태블릿을 보고 정답 번호를 고르고 있습니다. 하단의 현황을 확인하세요.</p>
+          <div class="mt-6 flex justify-center gap-3">
+            <span class="bg-rose-100 text-rose-800 px-4 py-1.5 rounded-full text-xs font-bold">답안 제출 현황: ${getSubmissionCount(state)} / 4 모둠 완료</span>
+          </div>
+        `;
+        observerChoice.classList.add('hidden');
+      } else if (isPerformer) {
+        performerBlock.classList.remove('hidden');
+        performerBlock.innerHTML = `
+          <div class="inline-block bg-indigo-100 text-indigo-700 p-3 rounded-full mb-3">
+            <i data-lucide="music-4" class="w-8 h-8"></i>
+          </div>
+          <h3 class="text-xl font-bold text-slate-700">우리 모둠은 이번 라운드 "연주 모둠"입니다.</h3>
+          <p class="text-slate-500 text-sm mt-1">다른 모둠들이 정답 리듬을 알아내는 동안 잠시 대기합니다.</p>
+        `;
+        observerChoice.classList.add('hidden');
+      } else {
+        performerBlock.classList.add('hidden');
+        observerChoice.classList.remove('hidden');
+
+        const submittedBadge = document.getElementById('submitted-badge');
+        const myAnswer = state.answers[currentRole];
+        if (myAnswer) {
+          submittedBadge.innerText = '제출 완료 (선택: 리듬 ' + myAnswer + ')';
+          submittedBadge.className = 'bg-emerald-100 text-emerald-800 text-xs font-extrabold px-3 py-1 rounded-full';
+        } else {
+          submittedBadge.innerText = '답안 미제출';
+          submittedBadge.className = 'bg-rose-100 text-rose-800 text-xs font-extrabold px-3 py-1 rounded-full';
+        }
+
+        const grid = document.getElementById('choice-list-grid');
+        grid.innerHTML = '';
+
+        [1, 2, 3, 4, 5, 6].forEach(num => {
+          const info = rhythmData[num];
+          const isSelected = (myAnswer === num);
+          const btn = document.createElement('button');
+          
+          btn.onclick = () => selectMyAnswer(num);
+          btn.className = isSelected 
+            ? "border-4 border-indigo-600 bg-indigo-50/70 p-3 rounded-xl flex flex-col justify-between items-center transition-all scale-105 shadow-md h-36"
+            : "border border-slate-200 bg-white hover:border-slate-400 p-3 rounded-xl flex flex-col justify-between items-center transition-all h-36";
+          
+          btn.innerHTML = `
+            <span class="bg-indigo-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-full">선택 ${num}</span>
+            <img src="${info.img}" alt="리듬 ${num}" class="h-10 object-contain my-auto">
+            <span class="text-[10px] text-indigo-500 font-bold">정답으로 선택</span>
+          `;
+          grid.appendChild(btn);
+        });
+      }
+
+      if (currentRole === 'host' && !timerInterval) {
+        startHostTimer('game_choosing', 15, () => {
+          transitionToResultPhase();
+        });
+      }
+    }
+
+    // --- [5단계 결과 발표 렌더링] ---
+    function renderResultView(state) {
+      const correctNum = state.secretRhythm || 1;
+      const correctInfo = rhythmData[correctNum];
+      
+      document.getElementById('correct-rhythm-number').innerText = correctNum;
+      document.getElementById('correct-rhythm-image').src = correctInfo.img;
+      document.getElementById('correct-rhythm-audio').src = correctInfo.wav;
+
+      const hostCtrls = document.getElementById('host-result-controls');
+      if (currentRole === 'host') {
+        hostCtrls.classList.remove('hidden');
+      } else {
+        hostCtrls.classList.add('hidden');
+      }
+
+      const displayGrid = document.getElementById('submitted-answers-display');
+      displayGrid.innerHTML = '';
+
+      let correctCount = 0;
+      Object.keys(groupMeta).forEach(grpKey => {
+        const isPerformer = (grpKey === state.performerGroup);
+        const grp = groupMeta[grpKey];
+
+        const card = document.createElement('div');
+        card.className = `p-4 rounded-xl text-center border ${grp.bg} ${grp.border}`;
+
+        if (isPerformer) {
+          card.innerHTML = `
+            <div class="${grp.text} font-black text-sm">${grp.name}</div>
+            <div class="bg-indigo-600 text-white text-[10px] font-bold rounded px-1 py-0.5 mt-2">연주 모둠</div>
+          `;
+        } else {
+          const ans = state.answers[grpKey];
+          const isCorrect = (ans === correctNum);
+          if (isCorrect) correctCount++;
+
+          card.innerHTML = `
+            <div class="${grp.text} font-black text-sm">${grp.name}</div>
+            <div class="mt-2 flex justify-center">
+              ${isCorrect 
+                ? '<span class="bg-emerald-500 text-white text-xs font-black px-2 py-0.5 rounded-full">O 정답! (+10)</span>' 
+                : `<span class="bg-rose-500 text-white text-xs font-black px-2 py-0.5 rounded-full">X 오답 (${ans || '미제출'})</span>`
+              }
+            </div>
+          `;
+        }
+        displayGrid.appendChild(card);
+      });
+
+      const summaryText = document.getElementById('round-scoring-summary');
+      const isPerformerGetPoint = (correctCount >= 3);
+      const perfGroupMeta = groupMeta[state.performerGroup];
+
+      summaryText.innerHTML = `
+        <div class="flex items-center gap-2">
+          <i data-lucide="info" class="w-4 h-4 text-indigo-600"></i>
+          <span>정답을 맞힌 모둠 수: <strong class="text-indigo-600 text-lg">${correctCount}</strong>모둠</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <i data-lucide="award" class="w-4 h-4 text-emerald-600"></i>
+          <span>
+            연주모둠(<strong class="${perfGroupMeta.text}">${perfGroupMeta.name}</strong>) 점수 획득: 
+            <strong class="${isPerformerGetPoint ? 'text-emerald-600' : 'text-rose-600'}">
+              ${isPerformerGetPoint ? '10점 획득 🎉 (3개 모둠 이상 정답)' : '획득 실패 😢 (3개 모둠 미만 정답)'}
+            </strong>
+          </span>
+        </div>
+      `;
+    }
+
+    // --- [6단계 최종 순위 렌더링] ---
+    function renderGameOverView(state) {
+      const rankList = document.getElementById('ranking-list');
+      rankList.innerHTML = '';
+
+      const hostCtrls = document.getElementById('host-gameover-controls');
+      if (currentRole === 'host') {
+        hostCtrls.classList.remove('hidden');
+      } else {
+        hostCtrls.classList.add('hidden');
+      }
+
+      const sortedGroups = Object.keys(state.scores)
+        .map(key => ({ key, score: state.scores[key] }))
+        .sort((a, b) => b.score - a.score);
+
+      sortedGroups.forEach((item, index) => {
+        const grp = groupMeta[item.key];
+        const row = document.createElement('div');
+        
+        let medal = '';
+        if (index === 0) medal = '🥇';
+        else if (index === 1) medal = '🥈';
+        else if (index === 2) medal = '🥉';
+        else medal = '🎖️';
+
+        row.className = `flex justify-between items-center p-4 rounded-xl border-2 ${grp.border} ${grp.bg} mb-3 shadow-sm transform hover:scale-[1.02] transition-transform`;
+        row.innerHTML = `
+          <div class="flex items-center gap-4">
+            <span class="text-2xl">${medal}</span>
+            <span class="text-xl font-bold ${grp.text}">${index + 1}위: ${grp.name}</span>
+          </div>
+          <div class="bg-white px-5 py-1.5 rounded-full border border-slate-200 font-extrabold text-slate-800 text-lg shadow-inner">
+            ${item.score} 점
+          </div>
+        `;
+        rankList.appendChild(row);
+      });
+    }
+
+    // --- 6. 타이머 로직 (교사 호스트 전용 구동) ---
+    function startHostTimer(phaseName, seconds, onComplete) {
+      if (timerInterval) clearInterval(timerInterval);
+      
+      let timeLeft = seconds;
+      updateCloudState({ timer: timeLeft });
+
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          timerInterval = null;
+          onComplete();
+        } else {
+          updateCloudState({ timer: timeLeft });
+        }
+      }, 1000);
+    }
+
+    function getSubmissionCount(state) {
+      let count = 0;
+      Object.keys(state.answers).forEach(k => {
+        if (k !== state.performerGroup && state.answers[k]) {
+          count++;
+        }
+      });
+      return count;
+    }
+
+    // --- 7. 게임 진행 상태 전이 함수들 ---
+
+    // [로컬 전용] 연습 리듬 섞기 (6개 리듬 중 5개 추출 배포)
+    function distributeLocalPracticeRhythms() {
+      const arr = [1, 2, 3, 4, 5, 6];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      
+      const practice = {};
+      Object.keys(groupMeta).forEach((grp, idx) => {
+        practice[grp] = arr[idx];
+      });
+
+      localGameState.practiceRhythms = practice;
+    }
+
+    // [전송] 무작위 연습 리듬 섞기 배포 (6개 리듬 활용)
+    function distributeRandomRhythms() {
+      const arr = [1, 2, 3, 4, 5, 6];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      const newPractice = {};
+      Object.keys(groupMeta).forEach((grp, idx) => {
+        newPractice[grp] = arr[idx];
+      });
+
+      updateCloudState({ practiceRhythms: newPractice });
+    }
+
+    // 연습단계 -> 리듬게임 대기단계 이동
+    function transitionToGameInit() {
+      if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+
+      updateCloudState({
+        currentPhase: 'game_init',
+        currentRound: 1,
+        performerGroup: 'group1',
+        secretRhythm: null,
+        timer: 0,
+        scores: { 'group1': 0, 'group2': 0, 'group3': 0, 'group4': 0, 'group5': 0 },
+        answers: { 'group1': null, 'group2': null, 'group3': null, 'group4': null, 'group5': null }
+      });
+    }
+
+    // 연주 모둠의 비밀 리듬 보관함 선택
+    function selectSecretRhythm(num) {
+      updateCloudState({ secretRhythm: num });
+    }
+
+    // 교사 대행 선택
+    function distributeSecretAuto(round) {
+      const autoNum = Math.floor(Math.random() * 6) + 1;
+      updateCloudState({ secretRhythm: autoNum });
+    }
+
+    // 연주자가 선택 후 "연주 시작하기" 버튼을 눌렀을 때
+    function startPerformingPhase() {
+      updateCloudState({
+        currentPhase: 'game_performing',
+        timer: 20
+      });
+    }
+
+    // 연주 시간 만료 -> 정답 선택 단계 이동
+    function transitionToChoosingPhase() {
+      if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+      updateCloudState({
+        currentPhase: 'game_choosing',
+        timer: 15
+      });
+    }
+
+    // 정답 제출 로직
+    function selectMyAnswer(num) {
+      const grpKey = currentRole;
+      const keyPath = `answers.${grpKey}`;
+      updateCloudState({
+        [keyPath]: num
+      });
+    }
+
+    // 정답 선택 시간 만료 -> 결과 발표 단계 이동 (채점 수행)
+    function transitionToResultPhase() {
+      if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+
+      const curCorrect = localGameState.secretRhythm || 1;
+      const perfGroup = localGameState.performerGroup;
+      
+      let correctCount = 0;
+      const updatedScores = { ...localGameState.scores };
+
+      Object.keys(groupMeta).forEach(grpKey => {
+        if (grpKey !== perfGroup) {
+          const ans = localGameState.answers[grpKey];
+          if (ans === curCorrect) {
+            correctCount++;
+            updatedScores[grpKey] = (updatedScores[grpKey] || 0) + 10; 
+          }
+        }
+      });
+
+      if (correctCount >= 3) {
+        updatedScores[perfGroup] = (updatedScores[perfGroup] || 0) + 10;
+      }
+
+      updateCloudState({
+        currentPhase: 'game_result',
+        scores: updatedScores
+      });
+    }
+
+    // 다음 라운드 또는 최종 결과 발표 전이
+    function nextRound() {
+      if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+
+      const nextRnd = localGameState.currentRound + 1;
+      if (nextRnd > 5) {
+        updateCloudState({
+          currentPhase: 'game_over'
+        });
+      } else {
+        const nextPerformer = 'group' + nextRnd;
+        
+        updateCloudState({
+          currentPhase: 'game_init',
+          currentRound: nextRnd,
+          performerGroup: nextPerformer,
+          secretRhythm: null,
+          answers: { 'group1': null, 'group2': null, 'group3': null, 'group4': null, 'group5': null }
+        });
+      }
+    }
+
+    // 초기 게임 리셋
+    function resetGame() {
+      if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+      updateCloudState({
+        currentPhase: 'practice',
+        currentRound: 1,
+        performerGroup: 'group1',
+        secretRhythm: null,
+        timer: 0,
+        scores: { 'group1': 0, 'group2': 0, 'group3': 0, 'group4': 0, 'group5': 0 },
+        answers: { 'group1': null, 'group2': null, 'group3': null, 'group4': null, 'group5': null }
+      });
+      distributeRandomRhythms();
+    }
+  </script>
+</body>
+</html>
